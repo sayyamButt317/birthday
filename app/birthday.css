@@ -192,6 +192,95 @@
   font-weight: 600;
 }
 
+.birthday-page .photo-gallery {
+  max-width: 900px;
+  margin: 0 auto 64px;
+  opacity: 0;
+  animation: birthday-fadeUp 1s ease forwards 1.3s;
+}
+
+.birthday-page .photo-gallery-label {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #cfe3f7;
+  margin-bottom: 24px;
+}
+
+.birthday-page .photo-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.birthday-page .photo-slider-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(232, 178, 60, 0.45);
+  border-radius: 50%;
+  background: rgba(6, 33, 58, 0.55);
+  color: var(--gold);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.birthday-page .photo-slider-btn:hover {
+  background: rgba(6, 33, 58, 0.8);
+  transform: translateY(-1px);
+}
+
+.birthday-page .photo-slider-track {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 4px 2px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 178, 60, 0.5) transparent;
+}
+
+.birthday-page .photo-slider-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.birthday-page .photo-slider-track::-webkit-scrollbar-thumb {
+  background: rgba(232, 178, 60, 0.5);
+  border-radius: 999px;
+}
+
+.birthday-page .photo-slide {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  width: min(240px, 72vw);
+  aspect-ratio: 4 / 5;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(232, 178, 60, 0.38);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.birthday-page .photo-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .birthday-page .photo-slide {
+    width: 220px;
+  }
+}
+
 .birthday-page .treat-box {
   opacity: 0;
   animation: birthday-fadeUp 1s ease forwards 1.4s;

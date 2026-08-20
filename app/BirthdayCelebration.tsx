@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TextFlippingBoard } from "@/components/ui/text-flipping-board";
+import ImageSlider from "@/components/ImageSlider";
+import type { BirthdayImage } from "@/app/image";
 import "./birthday.css";
 
 type ConfettiPiece = {
@@ -37,7 +39,11 @@ const BOARD_MESSAGES = [
   " CHEERS TO HEALTH, \n  FAMILY & EVERY   \n   GOAL IN HAND     ",
 ];
 
-export default function BirthdayCelebration() {
+type BirthdayCelebrationProps = {
+  images: BirthdayImage[];
+};
+
+export default function BirthdayCelebration({ images }: BirthdayCelebrationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const piecesRef = useRef<ConfettiPiece[]>([]);
   const treatCardRef = useRef<HTMLDivElement>(null);
@@ -318,6 +324,8 @@ export default function BirthdayCelebration() {
           visionary and driven as the one behind you. Thank you for building a
           place we&apos;re proud to grow in.
         </p>
+
+        <ImageSlider images={images} />
 
         <div className="treat-box">
           <div className="treat-label">Your surprise is waiting</div>
