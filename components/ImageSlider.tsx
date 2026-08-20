@@ -17,15 +17,6 @@ export default function ImageSlider({ images }: ImageSliderProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const getScrollAmount = useCallback(() => {
-    const track = trackRef.current;
-    if (!track) return 0;
-
-    const slide = track.querySelector<HTMLElement>(".photo-slide");
-    const gap = 16;
-    return slide ? slide.offsetWidth + gap : track.clientWidth * 0.8;
-  }, []);
-
   const scrollToIndex = useCallback(
     (index: number, behavior: ScrollBehavior = "smooth") => {
       const track = trackRef.current;
@@ -33,14 +24,19 @@ export default function ImageSlider({ images }: ImageSliderProps) {
 
       const clamped = ((index % images.length) + images.length) % images.length;
       const slide = slideRefs.current[clamped];
-      if (slide) {
-        slide.scrollIntoView({ behavior, block: "nearest", inline: "center" });
-      } else {
-        track.scrollTo({ left: clamped * getScrollAmount(), behavior });
-      }
+      if (!slide) return;
+
+      const targetLeft =
+        slide.offsetLeft - (track.clientWidth - slide.offsetWidth) / 2;
+      const maxScroll = track.scrollWidth - track.clientWidth;
+
+      track.scrollTo({
+        left: Math.min(maxScroll, Math.max(0, targetLeft)),
+        behavior,
+      });
       setActiveIndex(clamped);
     },
-    [getScrollAmount, images.length],
+    [images.length],
   );
 
   const scroll = useCallback(
@@ -54,12 +50,27 @@ export default function ImageSlider({ images }: ImageSliderProps) {
   useEffect(() => {
     if (images.length <= 1 || lightboxIndex !== null) return;
 
+    const gallery = trackRef.current?.closest(".photo-gallery");
+    if (!gallery) return;
+
+    let isVisible = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(gallery);
+
     const id = window.setInterval(() => {
-      if (pausedRef.current) return;
+      if (pausedRef.current || !isVisible) return;
       scrollToIndex(activeIndex + 1);
     }, AUTOPLAY_MS);
 
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearInterval(id);
+      observer.disconnect();
+    };
   }, [activeIndex, images.length, lightboxIndex, scrollToIndex]);
 
   useEffect(() => {

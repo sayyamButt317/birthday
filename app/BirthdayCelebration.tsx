@@ -51,8 +51,6 @@ type BirthdayCelebrationProps = {
 export default function BirthdayCelebration({ images }: BirthdayCelebrationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const piecesRef = useRef<ConfettiPiece[]>([]);
-  const treatCardRef = useRef<HTMLDivElement>(null);
-  const celebrationRef = useRef<HTMLElement>(null);
   const balloonIdRef = useRef(0);
   const musicRef = useRef<ReturnType<typeof createBirthdayMusic>>(null);
 
@@ -196,6 +194,17 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
   }, [revealed]);
 
   useEffect(() => {
+    if (!showReveal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showReveal]);
+
+  useEffect(() => {
     return () => {
       musicRef.current?.stop();
     };
@@ -206,16 +215,11 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
     setMusicEnabled(withMusic);
     setMusicMuted(false);
 
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
     playRevealChime();
 
     window.setTimeout(() => setShowReveal(false), 700);
-
-    window.setTimeout(() => {
-      celebrationRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 750);
 
     window.setTimeout(() => {
       const canvas = canvasRef.current;
@@ -274,12 +278,6 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
     }
 
     spawnBalloons(8);
-    window.setTimeout(() => {
-      treatCardRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }, 50);
   };
 
   const handleClose = () => {
@@ -323,7 +321,6 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
       <div className="wrap">
         <section
           id="celebration"
-          ref={celebrationRef}
           className="celebration-hero"
           aria-label="Birthday celebration"
         >
@@ -334,7 +331,7 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
             <span>Raheel Ahmed</span>
           </h1>
 
-          <div className="flipping-board-wrap dark" aria-live="polite">
+          <div className="flipping-board-wrap dark">
             <div className="flipping-board-label">Messages from the team</div>
             <TextFlippingBoard
               text={BOARD_MESSAGES[boardMsgIdx]}
@@ -445,7 +442,6 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
           <div
             className={`treat-card${giftOpened ? " show" : ""}`}
             id="treatCard"
-            ref={treatCardRef}
           >
             <button
               className="close-btn"
