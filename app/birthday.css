@@ -56,6 +56,7 @@
 
 .birthday-page .celebration-hero {
   scroll-margin-top: 24px;
+  overflow-anchor: none;
 }
 
 .birthday-page footer {
@@ -318,6 +319,7 @@
   max-width: min(720px, 100%);
   opacity: 0;
   animation: birthday-fadeUp 1s ease forwards 0.55s;
+  overflow-anchor: none;
 }
 
 .birthday-page .flipping-board-label {
@@ -446,6 +448,7 @@
   margin: 0 auto 64px;
   opacity: 0;
   animation: birthday-fadeUp 1s ease forwards 1.3s;
+  overflow-anchor: none;
 }
 
 .birthday-page .photo-gallery-label {
