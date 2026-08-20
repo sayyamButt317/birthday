@@ -36,6 +36,255 @@
   margin: 0 auto;
   padding: 60px 24px 120px;
   text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition:
+    opacity 0.9s ease 0.15s,
+    transform 0.9s ease 0.15s;
+}
+
+.birthday-page.is-revealed .wrap {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.birthday-page.is-revealed footer {
+  opacity: 1;
+}
+
+.birthday-page .celebration-hero {
+  scroll-margin-top: 24px;
+}
+
+.birthday-page footer {
+  opacity: 0;
+  transition: opacity 0.9s ease 0.35s;
+}
+
+/* Opening reveal */
+.opening-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(12, 81, 149, 0.35) 0%,
+    rgba(6, 33, 58, 0.98) 55%,
+    #031a30 100%
+  );
+  animation: birthday-revealIn 0.6s ease;
+}
+
+.opening-reveal.is-exiting {
+  animation: birthday-revealOut 0.7s ease forwards;
+  pointer-events: none;
+}
+
+.opening-reveal-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 60% 70%, rgba(232, 178, 60, 0.8), transparent),
+    radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 90% 60%, rgba(232, 178, 60, 0.55), transparent),
+    radial-gradient(1px 1px at 30% 80%, rgba(255, 255, 255, 0.45), transparent);
+  opacity: 0.6;
+  animation: birthday-starsPulse 4s ease-in-out infinite;
+}
+
+.opening-reveal-content {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  text-align: center;
+  animation: birthday-fadeUp 0.8s ease 0.15s both;
+}
+
+.opening-reveal-eyebrow {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 12px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+
+.opening-reveal-title {
+  font-size: clamp(32px, 6vw, 52px);
+  line-height: 1.1;
+  font-weight: 400;
+  margin: 0 0 16px;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+
+.opening-reveal-title span {
+  display: block;
+  margin-top: 8px;
+  color: var(--gold);
+  font-style: italic;
+  font-size: clamp(28px, 5vw, 44px);
+}
+
+.opening-reveal-text {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #cfe3f7;
+  margin: 0 0 28px;
+}
+
+.opening-reveal-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.opening-reveal-music {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  color: #d7e8fa;
+  margin-bottom: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.opening-reveal-music input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.opening-reveal-music-ui {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid rgba(232, 178, 60, 0.65);
+  background: rgba(6, 33, 58, 0.5);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.opening-reveal-music input:checked + .opening-reveal-music-ui::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--gold);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.opening-reveal-btn {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: var(--gold);
+  color: #3a2606;
+  border: none;
+  padding: 18px 42px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  animation: birthday-btnPulse 2.2s ease-in-out infinite;
+}
+
+.opening-reveal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.opening-reveal-btn:active {
+  transform: translateY(0);
+}
+
+.birthday-page .music-toggle {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 178, 60, 0.45);
+  background: rgba(6, 33, 58, 0.82);
+  backdrop-filter: blur(6px);
+  color: var(--gold);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+  animation: birthday-fadeUp 0.6s ease 0.5s both;
+}
+
+.birthday-page .music-toggle:hover {
+  background: rgba(6, 33, 58, 0.95);
+  transform: translateY(-1px);
+}
+
+.birthday-page .music-toggle-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+@keyframes birthday-revealIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes birthday-revealOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes birthday-starsPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes birthday-btnPulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    box-shadow: 0 8px 36px rgba(232, 178, 60, 0.35);
+  }
 }
 
 .birthday-page .eyebrow {
@@ -258,7 +507,7 @@
 
 .birthday-page .photo-slide {
   flex: 0 0 auto;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   width: min(240px, 72vw);
   aspect-ratio: 4 / 5;
   border-radius: 14px;
@@ -266,6 +515,22 @@
   border: 2px solid rgba(232, 178, 60, 0.38);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
   background: rgba(255, 255, 255, 0.06);
+  padding: 0;
+  position: relative;
+  cursor: zoom-in;
+  font: inherit;
+  color: inherit;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.birthday-page .photo-slide:hover,
+.birthday-page .photo-slide.is-active {
+  transform: translateY(-3px);
+  border-color: rgba(232, 178, 60, 0.65);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
 }
 
 .birthday-page .photo-slide img {
@@ -273,11 +538,202 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none;
+}
+
+.birthday-page .photo-slide-zoom {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(6, 33, 58, 0.72);
+  border: 1px solid rgba(232, 178, 60, 0.5);
+  color: var(--gold);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.birthday-page .photo-slide:hover .photo-slide-zoom,
+.birthday-page .photo-slide.is-active .photo-slide-zoom {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.birthday-page .photo-slider-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.birthday-page .photo-slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.35);
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
+}
+
+.birthday-page .photo-slider-dot.is-active {
+  width: 24px;
+  background: var(--gold);
+}
+
+.birthday-page .photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 33, 58, 0.92);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: birthday-lightboxIn 0.25s ease;
+}
+
+.birthday-page .photo-lightbox-inner {
+  position: relative;
+  width: min(920px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.birthday-page .photo-lightbox-figure {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+}
+
+.birthday-page .photo-lightbox-image {
+  max-width: 100%;
+  max-height: min(78vh, 820px);
+  width: auto;
+  height: auto;
+  border-radius: 14px;
+  border: 2px solid rgba(232, 178, 60, 0.45);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  object-fit: contain;
+  animation: birthday-lightboxImageIn 0.3s ease;
+}
+
+.birthday-page .photo-lightbox-caption {
+  margin-top: 14px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(232, 178, 60, 0.9);
+}
+
+.birthday-page .photo-lightbox-close {
+  position: absolute;
+  top: -12px;
+  right: -4px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.birthday-page .photo-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.birthday-page .photo-lightbox-nav {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(232, 178, 60, 0.45);
+  border-radius: 50%;
+  background: rgba(6, 33, 58, 0.65);
+  color: var(--gold);
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.birthday-page .photo-lightbox-nav:hover {
+  background: rgba(6, 33, 58, 0.9);
+  transform: translateY(-1px);
+}
+
+@keyframes birthday-lightboxIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes birthday-lightboxImageIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (min-width: 768px) {
   .birthday-page .photo-slide {
     width: 220px;
+  }
+}
+
+@media (max-width: 640px) {
+  .birthday-page .photo-lightbox-inner {
+    flex-direction: column;
+  }
+
+  .birthday-page .photo-lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+
+  .birthday-page .photo-lightbox-prev {
+    left: 0;
+  }
+
+  .birthday-page .photo-lightbox-next {
+    right: 0;
+  }
+
+  .birthday-page .photo-lightbox-close {
+    top: -44px;
+    right: 0;
   }
 }
 

@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TextFlippingBoard } from "@/components/ui/text-flipping-board";
 import ImageSlider from "@/components/ImageSlider";
+import OpeningReveal from "@/components/OpeningReveal";
 import type { BirthdayImage } from "@/app/image";
+import {
+  createBirthdayMusic,
+  playRevealChime,
+} from "@/lib/birthday-music";
 import "./birthday.css";
 
 type ConfettiPiece = {
@@ -47,8 +52,14 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const piecesRef = useRef<ConfettiPiece[]>([]);
   const treatCardRef = useRef<HTMLDivElement>(null);
+  const celebrationRef = useRef<HTMLElement>(null);
   const balloonIdRef = useRef(0);
+  const musicRef = useRef<ReturnType<typeof createBirthdayMusic>>(null);
 
+  const [revealed, setRevealed] = useState(false);
+  const [showReveal, setShowReveal] = useState(true);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [musicMuted, setMusicMuted] = useState(false);
   const [giftOpened, setGiftOpened] = useState(false);
   const [responseNote, setResponseNote] = useState("");
   const [balloons, setBalloons] = useState<Balloon[]>([]);
@@ -60,9 +71,10 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
   );
 
   useEffect(() => {
+    if (!revealed) return;
     const id = window.setInterval(nextBoardMessage, 6000);
     return () => window.clearInterval(id);
-  }, [nextBoardMessage]);
+  }, [nextBoardMessage, revealed]);
 
   const spawnConfetti = (count: number) => {
     const canvas = canvasRef.current;
@@ -123,6 +135,8 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
   };
 
   useEffect(() => {
+    if (!revealed) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -178,8 +192,68 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
       cancelAnimationFrame(frameId);
       window.clearInterval(balloonInterval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only setup for canvas + balloons
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- start effects only after reveal
+  }, [revealed]);
+
+  useEffect(() => {
+    return () => {
+      musicRef.current?.stop();
+    };
   }, []);
+
+  const handleReveal = (withMusic: boolean) => {
+    setRevealed(true);
+    setMusicEnabled(withMusic);
+    setMusicMuted(false);
+
+    playRevealChime();
+
+    window.setTimeout(() => setShowReveal(false), 700);
+
+    window.setTimeout(() => {
+      celebrationRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 750);
+
+    window.setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        fireworkBurst(canvas.width / 2, canvas.height / 2.2);
+        window.setTimeout(
+          () => fireworkBurst(canvas.width * 0.25, canvas.height * 0.35),
+          180,
+        );
+        window.setTimeout(
+          () => fireworkBurst(canvas.width * 0.75, canvas.height * 0.35),
+          360,
+        );
+      }
+      spawnConfetti(180);
+      spawnBalloons(12);
+    }, 150);
+
+    if (withMusic) {
+      musicRef.current = createBirthdayMusic();
+      window.setTimeout(() => musicRef.current?.start(), 400);
+    }
+  };
+
+  const toggleMusic = () => {
+    if (!musicEnabled) {
+      const music = createBirthdayMusic();
+      musicRef.current = music;
+      music?.start();
+      setMusicEnabled(true);
+      setMusicMuted(false);
+      return;
+    }
+
+    const nextMuted = !musicMuted;
+    setMusicMuted(nextMuted);
+    musicRef.current?.setMuted(nextMuted);
+  };
 
   const handleOpenGift = () => {
     if (giftOpened) return;
@@ -225,7 +299,11 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
   };
 
   return (
-    <div className="birthday-page">
+    <div className={`birthday-page${revealed ? " is-revealed" : ""}`}>
+      {!showReveal ? null : (
+        <OpeningReveal exiting={revealed} onReveal={handleReveal} />
+      )}
+
       <canvas id="confetti-canvas" ref={canvasRef} />
       <div className="balloons" aria-hidden="true">
         {balloons.map((balloon) => (
@@ -243,65 +321,72 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
       </div>
 
       <div className="wrap">
-        <div className="eyebrow">Techtimize · Celebration</div>
-        <h1>
-          Happy Birthday,
-          <br />
-          <span>Raheel Ahmed</span>
-        </h1>
+        <section
+          id="celebration"
+          ref={celebrationRef}
+          className="celebration-hero"
+          aria-label="Birthday celebration"
+        >
+          <div className="eyebrow">Techtimize · Celebration</div>
+          <h1>
+            Happy Birthday,
+            <br />
+            <span>Raheel Ahmed</span>
+          </h1>
 
-        <div className="flipping-board-wrap dark" aria-live="polite">
-          <div className="flipping-board-label">Messages from the team</div>
-          <TextFlippingBoard
-            text={BOARD_MESSAGES[boardMsgIdx]}
-            className="birthday-flip-board"
-            duration={1.35}
-          />
-        </div>
-
-        <p className="subtitle">
-          The whole Techtimize team is lighting a candle for the person who
-          lights the way for all of us.
-        </p>
-
-        <div className="cake-scene">
-          <svg
-            width="220"
-            height="180"
-            viewBox="0 0 220 180"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <ellipse
-              cx="110"
-              cy="165"
-              rx="90"
-              ry="10"
-              fill="rgba(0,0,0,0.2)"
+          <div className="flipping-board-wrap dark" aria-live="polite">
+            <div className="flipping-board-label">Messages from the team</div>
+            <TextFlippingBoard
+              text={BOARD_MESSAGES[boardMsgIdx]}
+              className="birthday-flip-board"
+              duration={1.35}
             />
-            <rect x="40" y="110" width="140" height="50" rx="6" fill="#f2d9c2" />
-            <rect x="40" y="110" width="140" height="12" fill="#fbe8d6" />
-            <rect x="55" y="90" width="110" height="24" rx="5" fill="#e8b23c" />
-            <rect x="55" y="90" width="110" height="8" fill="#f3cf74" />
-            <rect x="75" y="60" width="70" height="34" rx="5" fill="#f2d9c2" />
-            <rect x="75" y="60" width="70" height="9" fill="#fbe8d6" />
-            <g className="flame">
-              <rect x="105" y="35" width="4" height="26" fill="#8a5a2b" />
-              <path
-                d="M107 12 C112 20 116 26 107 36 C98 26 102 20 107 12 Z"
-                fill="#ffcf5c"
+          </div>
+
+          <p className="subtitle">
+            The whole Techtimize team is lighting a candle for the person who
+            lights the way for all of us.
+          </p>
+
+          <div className="cake-scene">
+            <svg
+              width="220"
+              height="180"
+              viewBox="0 0 220 180"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <ellipse
+                cx="110"
+                cy="165"
+                rx="90"
+                ry="10"
+                fill="rgba(0,0,0,0.2)"
               />
-              <path
-                d="M107 20 C110 25 112 28 107 34 C102 28 104 25 107 20 Z"
-                fill="#ff8a3d"
-              />
-            </g>
-            <circle cx="70" cy="105" r="4" fill="#0697D5" />
-            <circle cx="90" cy="102" r="4" fill="#e8b23c" />
-            <circle cx="130" cy="102" r="4" fill="#0697D5" />
-            <circle cx="150" cy="105" r="4" fill="#e8b23c" />
-          </svg>
-        </div>
+              <rect x="40" y="110" width="140" height="50" rx="6" fill="#f2d9c2" />
+              <rect x="40" y="110" width="140" height="12" fill="#fbe8d6" />
+              <rect x="55" y="90" width="110" height="24" rx="5" fill="#e8b23c" />
+              <rect x="55" y="90" width="110" height="8" fill="#f3cf74" />
+              <rect x="75" y="60" width="70" height="34" rx="5" fill="#f2d9c2" />
+              <rect x="75" y="60" width="70" height="9" fill="#fbe8d6" />
+              <g className="flame">
+                <rect x="105" y="35" width="4" height="26" fill="#8a5a2b" />
+                <path
+                  d="M107 12 C112 20 116 26 107 36 C98 26 102 20 107 12 Z"
+                  fill="#ffcf5c"
+                />
+                <path
+                  d="M107 20 C110 25 112 28 107 34 C102 28 104 25 107 20 Z"
+                  fill="#ff8a3d"
+                />
+              </g>
+              <circle cx="70" cy="105" r="4" fill="#0697D5" />
+              <circle cx="90" cy="102" r="4" fill="#e8b23c" />
+              <circle cx="130" cy="102" r="4" fill="#0697D5" />
+              <circle cx="150" cy="105" r="4" fill="#e8b23c" />
+            </svg>
+          </div>
+        </section>
 
         <div className="blessing">
           <span className="quote-mark">&ldquo;</span>
@@ -398,6 +483,27 @@ export default function BirthdayCelebration({ images }: BirthdayCelebrationProps
       </div>
 
       <footer>Made with gratitude by Team Techtimize</footer>
+
+      {revealed && (
+        <button
+          type="button"
+          className="music-toggle"
+          onClick={toggleMusic}
+          aria-label={
+            !musicEnabled || musicMuted
+              ? "Turn celebration music on"
+              : "Mute celebration music"
+          }
+          aria-pressed={musicEnabled && !musicMuted}
+        >
+          <span className="music-toggle-icon" aria-hidden="true">
+            {!musicEnabled || musicMuted ? "♪" : "♫"}
+          </span>
+          <span className="music-toggle-label">
+            {!musicEnabled || musicMuted ? "Music off" : "Music on"}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
