@@ -64,6 +64,49 @@
   font-style: italic;
 }
 
+.birthday-page .flipping-board-wrap {
+  margin: 4px auto 44px;
+  max-width: min(720px, 100%);
+  opacity: 0;
+  animation: birthday-fadeUp 1s ease forwards 0.55s;
+}
+
+.birthday-page .flipping-board-label {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(232, 178, 60, 0.85);
+  margin-bottom: 12px;
+}
+
+.birthday-page .birthday-flip-board {
+  background: linear-gradient(
+    145deg,
+    rgba(6, 33, 58, 0.96),
+    rgba(12, 81, 149, 0.88)
+  ) !important;
+  border: 1px solid rgba(232, 178, 60, 0.38);
+  box-shadow:
+    0 22px 56px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 12px 14px !important;
+}
+
+.birthday-page .birthday-flip-board .grid {
+  gap: 2px !important;
+}
+
+@media (min-width: 768px) {
+  .birthday-page .birthday-flip-board {
+    padding: 16px 20px !important;
+  }
+
+  .birthday-page .birthday-flip-board .grid {
+    gap: 3px !important;
+  }
+}
+
 .birthday-page .subtitle {
   font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 18px;

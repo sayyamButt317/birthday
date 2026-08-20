@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { TextFlippingBoard } from "@/components/ui/text-flipping-board";
 import "./birthday.css";
 
 type ConfettiPiece = {
@@ -27,6 +28,15 @@ type Balloon = {
 const CONFETTI_COLORS = ["#e8b23c", "#0697D5", "#ffffff", "#0C5195", "#ffcf5c"];
 const BALLOON_COLORS = ["#e8b23c", "#0697D5", "#ffffff", "#ff8a3d"];
 
+const BOARD_MESSAGES = [
+  "  HAPPY BIRTHDAY   \n    RAHEEL AHMED    \n FROM TEAM TECHTIMIZE",
+  " MAY THIS YEAR BRING\n  CLARITY & COURAGE \n   & ENDLESS JOY    ",
+  "  HERE'S TO MORE    \n MILESTONES & MORE  \n      LAUGHTER      ",
+  " WE'RE GRATEFUL TO \n  BUILD UNDER YOUR  \n     LEADERSHIP     ",
+  "  YOU LIGHT THE WAY \n   FOR ALL OF US    \n   — TECHTIMIZE     ",
+  " CHEERS TO HEALTH, \n  FAMILY & EVERY   \n   GOAL IN HAND     ",
+];
+
 export default function BirthdayCelebration() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const piecesRef = useRef<ConfettiPiece[]>([]);
@@ -36,6 +46,17 @@ export default function BirthdayCelebration() {
   const [giftOpened, setGiftOpened] = useState(false);
   const [responseNote, setResponseNote] = useState("");
   const [balloons, setBalloons] = useState<Balloon[]>([]);
+  const [boardMsgIdx, setBoardMsgIdx] = useState(0);
+
+  const nextBoardMessage = useCallback(
+    () => setBoardMsgIdx((i) => (i + 1) % BOARD_MESSAGES.length),
+    [],
+  );
+
+  useEffect(() => {
+    const id = window.setInterval(nextBoardMessage, 6000);
+    return () => window.clearInterval(id);
+  }, [nextBoardMessage]);
 
   const spawnConfetti = (count: number) => {
     const canvas = canvasRef.current;
@@ -222,6 +243,16 @@ export default function BirthdayCelebration() {
           <br />
           <span>Raheel Ahmed</span>
         </h1>
+
+        <div className="flipping-board-wrap dark" aria-live="polite">
+          <div className="flipping-board-label">Messages from the team</div>
+          <TextFlippingBoard
+            text={BOARD_MESSAGES[boardMsgIdx]}
+            className="birthday-flip-board"
+            duration={1.35}
+          />
+        </div>
+
         <p className="subtitle">
           The whole Techtimize team is lighting a candle for the person who
           lights the way for all of us.
