@@ -1,505 +1,262 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TextFlippingBoard } from "@/components/ui/text-flipping-board";
-import ImageSlider from "@/components/ImageSlider";
 import OpeningReveal from "@/components/OpeningReveal";
-import type { BirthdayImage } from "@/app/image";
+import PhotoArchive from "@/components/PhotoArchive";
+import VinylPlayer from "@/components/VinylPlayer";
+import BirthdayCafe from "@/components/BirthdayCafe";
+import WishCake from "@/components/WishCake";
 import {
-  createBirthdayMusic,
-  playRevealChime,
-} from "@/lib/birthday-music";
+  Bear,
+  Butterfly,
+  Dice,
+  EightBall,
+  Flower,
+  GummyHeart,
+  Sparkle,
+  StarClip,
+} from "@/components/Stickers";
+import { createBirthdayMusic, playChime } from "@/lib/birthday-music";
+import { createConfetti, type ConfettiController } from "@/lib/confetti";
+import { CLOSING_LETTER, DICTIONARY, FROM, NAME, REASONS } from "@/lib/content";
+import type { Photo } from "@/lib/photos";
 import "./birthday.css";
 
-type ConfettiPiece = {
-  x: number;
-  y: number;
-  r: number;
-  c: string;
-  vy: number;
-  vx: number;
-  rot: number;
-  vr: number;
-  fade?: boolean;
-  life?: number;
-};
-
-type Balloon = {
-  id: number;
-  left: string;
-  background: string;
-  duration: string;
-  delay: string;
-};
-
-const CONFETTI_COLORS = ["#e8b23c", "#0697D5", "#ffffff", "#0C5195", "#ffcf5c"];
-const BALLOON_COLORS = ["#e8b23c", "#0697D5", "#ffffff", "#ff8a3d"];
-
-const BOARD_MESSAGES = [
-  "  HAPPY BIRTHDAY   \n    RAHEEL AHMED    \n FROM TEAM TECHTIMIZE",
-  " MAY THIS YEAR BRING\n  CLARITY & COURAGE \n   & ENDLESS JOY    ",
-  "  HERE'S TO MORE    \n MILESTONES & MORE  \n      LAUGHTER      ",
-  " WE'RE GRATEFUL TO \n  BUILD UNDER YOUR  \n     LEADERSHIP     ",
-  "  YOU LIGHT THE WAY \n   FOR ALL OF US    \n   — TECHTIMIZE     ",
-  " CHEERS TO HEALTH, \n  FAMILY & EVERY   \n   GOAL IN HAND     ",
-];
-
 type BirthdayCelebrationProps = {
-  images: BirthdayImage[];
+  queen: Photo | null;
+  photos: Photo[];
+  showPhotoHint: boolean;
 };
 
-export default function BirthdayCelebration({ images }: BirthdayCelebrationProps) {
+const NOTE_COLORS = ["lilac", "blue", "matcha", "pink", "butter", "lilac"];
+
+export default function BirthdayCelebration({ queen, photos, showPhotoHint }: BirthdayCelebrationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const piecesRef = useRef<ConfettiPiece[]>([]);
-  const balloonIdRef = useRef(0);
+  const confettiRef = useRef<ConfettiController | null>(null);
   const musicRef = useRef<ReturnType<typeof createBirthdayMusic>>(null);
 
   const [revealed, setRevealed] = useState(false);
   const [showReveal, setShowReveal] = useState(true);
-  const [musicEnabled, setMusicEnabled] = useState(false);
-  const [musicMuted, setMusicMuted] = useState(false);
-  const [giftOpened, setGiftOpened] = useState(false);
-  const [responseNote, setResponseNote] = useState("");
-  const [balloons, setBalloons] = useState<Balloon[]>([]);
-  const [boardMsgIdx, setBoardMsgIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
 
-  const nextBoardMessage = useCallback(
-    () => setBoardMsgIdx((i) => (i + 1) % BOARD_MESSAGES.length),
-    [],
-  );
-
+  // Confetti canvas lives for the whole page.
   useEffect(() => {
-    if (!revealed) return;
-    const id = window.setInterval(nextBoardMessage, 6000);
-    return () => window.clearInterval(id);
-  }, [nextBoardMessage, revealed]);
+    if (!canvasRef.current) return;
+    const confetti = createConfetti(canvasRef.current);
+    confettiRef.current = confetti;
+    return () => confetti.destroy();
+  }, []);
 
-  const spawnConfetti = (count: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    for (let i = 0; i < count; i++) {
-      piecesRef.current.push({
-        x: Math.random() * canvas.width,
-        y: -20 - Math.random() * canvas.height * 0.5,
-        r: 4 + Math.random() * 5,
-        c: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-        vy: 1.5 + Math.random() * 2.5,
-        vx: -1 + Math.random() * 2,
-        rot: Math.random() * 360,
-        vr: -4 + Math.random() * 8,
-      });
-    }
-  };
-
-  const fireworkBurst = (x: number, y: number) => {
-    for (let i = 0; i < 40; i++) {
-      const angle = (Math.PI * 2 * i) / 40;
-      const speed = 2 + Math.random() * 3;
-      piecesRef.current.push({
-        x,
-        y,
-        r: 3 + Math.random() * 3,
-        c: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-        vy: Math.sin(angle) * speed,
-        vx: Math.cos(angle) * speed,
-        rot: Math.random() * 360,
-        vr: -6 + Math.random() * 12,
-        fade: true,
-      });
-    }
-  };
-
-  const spawnBalloons = (count: number) => {
-    const next: Balloon[] = [];
-    for (let i = 0; i < count; i++) {
-      balloonIdRef.current += 1;
-      next.push({
-        id: balloonIdRef.current,
-        left: `${Math.random() * 100}vw`,
-        background:
-          BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)],
-        duration: `${7 + Math.random() * 5}s`,
-        delay: `${Math.random() * 2}s`,
-      });
-    }
-
-    setBalloons((prev) => [...prev, ...next]);
-
-    window.setTimeout(() => {
-      const ids = new Set(next.map((b) => b.id));
-      setBalloons((prev) => prev.filter((b) => !ids.has(b.id)));
-    }, 14000);
-  };
-
-  useEffect(() => {
-    if (!revealed) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    resize();
-    window.addEventListener("resize", resize);
-    spawnConfetti(120);
-
-    let frameId = 0;
-    const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      piecesRef.current.forEach((p) => {
-        p.x += p.vx;
-        p.rot += p.vr;
-        if (p.fade) {
-          p.vy += 0.06;
-          p.y += p.vy;
-          p.life = (p.life || 1) - 0.012;
-        } else {
-          p.y += p.vy;
-          if (p.y > canvas.height + 20) {
-            p.y = -20;
-            p.x = Math.random() * canvas.width;
-          }
-        }
-        ctx.save();
-        ctx.globalAlpha = p.fade ? Math.max(p.life ?? 1, 0) : 1;
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rot * Math.PI) / 180);
-        ctx.fillStyle = p.c;
-        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
-        ctx.restore();
-      });
-      piecesRef.current = piecesRef.current.filter(
-        (p) => !(p.fade && (p.life ?? 1) <= 0),
-      );
-      frameId = requestAnimationFrame(tick);
-    };
-
-    frameId = requestAnimationFrame(tick);
-    spawnBalloons(10);
-    const balloonInterval = window.setInterval(() => spawnBalloons(4), 6000);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      cancelAnimationFrame(frameId);
-      window.clearInterval(balloonInterval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- start effects only after reveal
-  }, [revealed]);
-
+  // Lock scroll while the envelope is showing.
   useEffect(() => {
     if (!showReveal) return;
-
-    const previousOverflow = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = prev;
     };
   }, [showReveal]);
 
+  useEffect(() => () => musicRef.current?.stop(), []);
+
+  // Gentle scroll-in for sections.
   useEffect(() => {
-    return () => {
-      musicRef.current?.stop();
-    };
+    if (!revealed) return;
+    const els = document.querySelectorAll<HTMLElement>(".reveal-on-scroll");
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            io.unobserve(entry.target);
+          }
+        }),
+      { threshold: 0.12 },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [revealed]);
+
+  const startMusic = useCallback(() => {
+    if (!musicRef.current) musicRef.current = createBirthdayMusic();
+    musicRef.current?.start();
+    musicRef.current?.setMuted(false);
+    setPlaying(true);
   }, []);
+
+  const toggleMusic = useCallback(() => {
+    if (playing) {
+      musicRef.current?.stop();
+      setPlaying(false);
+    } else {
+      startMusic();
+    }
+  }, [playing, startMusic]);
 
   const handleReveal = (withMusic: boolean) => {
     setRevealed(true);
-    setMusicEnabled(withMusic);
-    setMusicMuted(false);
+    window.scrollTo({ top: 0, behavior: "auto" });
+    playChime();
+    window.setTimeout(() => setShowReveal(false), 800);
 
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    confettiRef.current?.burst(w / 2, h * 0.4, undefined, 90);
+    window.setTimeout(() => confettiRef.current?.burst(w * 0.2, h * 0.3), 200);
+    window.setTimeout(() => confettiRef.current?.burst(w * 0.8, h * 0.3), 380);
+    window.setTimeout(() => confettiRef.current?.rain(120), 500);
 
-    playRevealChime();
-
-    window.setTimeout(() => setShowReveal(false), 700);
-
-    window.setTimeout(() => {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        fireworkBurst(canvas.width / 2, canvas.height / 2.2);
-        window.setTimeout(
-          () => fireworkBurst(canvas.width * 0.25, canvas.height * 0.35),
-          180,
-        );
-        window.setTimeout(
-          () => fireworkBurst(canvas.width * 0.75, canvas.height * 0.35),
-          360,
-        );
-      }
-      spawnConfetti(180);
-      spawnBalloons(12);
-    }, 150);
-
-    if (withMusic) {
-      musicRef.current = createBirthdayMusic();
-      window.setTimeout(() => musicRef.current?.start(), 400);
-    }
+    if (withMusic) window.setTimeout(startMusic, 600);
   };
 
-  const toggleMusic = () => {
-    if (!musicEnabled) {
-      const music = createBirthdayMusic();
-      musicRef.current = music;
-      music?.start();
-      setMusicEnabled(true);
-      setMusicMuted(false);
-      return;
-    }
-
-    const nextMuted = !musicMuted;
-    setMusicMuted(nextMuted);
-    musicRef.current?.setMuted(nextMuted);
+  const celebrateAt = (x: number, y: number, colors?: string[]) => {
+    playChime();
+    confettiRef.current?.burst(x, y, colors, 50);
   };
 
-  const handleOpenGift = () => {
-    if (giftOpened) return;
-    setGiftOpened(true);
-    setResponseNote("");
-
-    const canvas = canvasRef.current;
-    if (canvas) {
-      fireworkBurst(canvas.width / 2, canvas.height / 2.5);
-      window.setTimeout(
-        () => fireworkBurst(canvas.width * 0.3, canvas.height * 0.4),
-        200,
-      );
-      window.setTimeout(
-        () => fireworkBurst(canvas.width * 0.7, canvas.height * 0.4),
-        400,
-      );
-    }
-
-    spawnBalloons(8);
-  };
-
-  const handleClose = () => {
-    setGiftOpened(false);
-    setResponseNote("");
-  };
-
-  const handleAccept = () => {
-    setResponseNote(
-      "That's the spirit! The team is already arguing about restaurants.",
-    );
-    spawnConfetti(200);
-  };
-
-  const handleLater = () => {
-    setResponseNote("Fair enough — we'll follow up and find a date that works.");
+  const handleAllCandlesOut = () => {
+    playChime();
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    confettiRef.current?.burst(w / 2, h / 2, undefined, 120);
+    window.setTimeout(() => confettiRef.current?.rain(200), 250);
   };
 
   return (
-    <div className={`birthday-page${revealed ? " is-revealed" : ""}`}>
-      {!showReveal ? null : (
-        <OpeningReveal exiting={revealed} onReveal={handleReveal} />
-      )}
+    <div className={`bday${revealed ? " is-revealed" : ""}`}>
+      {showReveal ? <OpeningReveal exiting={revealed} onReveal={handleReveal} /> : null}
 
-      <canvas id="confetti-canvas" ref={canvasRef} />
-      <div className="balloons" aria-hidden="true">
-        {balloons.map((balloon) => (
-          <div
-            key={balloon.id}
-            className="balloon"
-            style={{
-              left: balloon.left,
-              background: balloon.background,
-              animationDuration: balloon.duration,
-              animationDelay: balloon.delay,
-            }}
-          />
-        ))}
-      </div>
+      <canvas className="confetti-canvas" ref={canvasRef} aria-hidden="true" />
 
-      <div className="wrap">
-        <section
-          id="celebration"
-          className="celebration-hero"
-          aria-label="Birthday celebration"
-        >
-          <div className="eyebrow">Techtimize · Celebration</div>
-          <h1>
-            Happy Birthday,
-            <br />
-            <span>Raheel Ahmed</span>
+      {/* ---------- HERO ---------- */}
+      <header className="hero">
+        <div className="hero-stickers" aria-hidden="true">
+          <GummyHeart className="float f1" style={{ top: "9%", left: "6%", width: 70 }} />
+          <StarClip className="float f2" style={{ top: "14%", right: "8%", width: 62 }} />
+          <Butterfly className="float f3 flutter" style={{ top: "44%", left: "3%", width: 74 }} />
+          <EightBall className="float f1" style={{ bottom: "12%", right: "6%", width: 64 }} />
+          <Dice className="float f3" style={{ bottom: "8%", left: "10%", width: 54 }} />
+          <Bear className="float f2" style={{ top: "58%", right: "16%", width: 44 }} />
+          <GummyHeart className="float f3" color="#a9d8f0" style={{ top: "30%", right: "3%", width: 48 }} />
+          <Flower className="float f1 spin-slow" style={{ top: "4%", left: "38%", width: 40 }} />
+          <StarClip className="float f3" color="#b5d395" style={{ bottom: "26%", left: "24%", width: 34 }} />
+          <Sparkle className="twinkle" style={{ top: "22%", left: "22%", width: 20 }} />
+          <Sparkle className="twinkle t2" style={{ top: "70%", left: "40%", width: 16 }} />
+          <Sparkle className="twinkle t3" style={{ top: "18%", right: "26%", width: 22 }} />
+        </div>
+
+        <div className="hero-inner">
+          <p className="hero-eyebrow hand">it&apos;s your day ✿</p>
+          <h1 className="hero-title">
+            <span className="line">happy</span>
+            <span className="line">birthday,</span>
+            <em className="line name">{NAME}</em>
           </h1>
-
-          <div className="flipping-board-wrap dark">
-            <div className="flipping-board-label">Messages from the team</div>
-            <TextFlippingBoard
-              text={BOARD_MESSAGES[boardMsgIdx]}
-              className="birthday-flip-board"
-              duration={1.35}
-            />
-          </div>
-
-          <p className="subtitle">
-            The whole Techtimize team is lighting a candle for the person who
-            lights the way for all of us.
+          <p className="hero-sub">
+            a little surprise from a friend who gets to sit near the kindest heart, the
+            brightest smile and the most beautiful soul — someone who makes every single day
+            better just by being in it.
           </p>
 
-          <div className="cake-scene">
-            <svg
-              width="220"
-              height="180"
-              viewBox="0 0 220 180"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <ellipse
-                cx="110"
-                cy="165"
-                rx="90"
-                ry="10"
-                fill="rgba(0,0,0,0.2)"
-              />
-              <rect x="40" y="110" width="140" height="50" rx="6" fill="#f2d9c2" />
-              <rect x="40" y="110" width="140" height="12" fill="#fbe8d6" />
-              <rect x="55" y="90" width="110" height="24" rx="5" fill="#e8b23c" />
-              <rect x="55" y="90" width="110" height="8" fill="#f3cf74" />
-              <rect x="75" y="60" width="70" height="34" rx="5" fill="#f2d9c2" />
-              <rect x="75" y="60" width="70" height="9" fill="#fbe8d6" />
-              <g className="flame">
-                <rect x="105" y="35" width="4" height="26" fill="#8a5a2b" />
-                <path
-                  d="M107 12 C112 20 116 26 107 36 C98 26 102 20 107 12 Z"
-                  fill="#ffcf5c"
-                />
-                <path
-                  d="M107 20 C110 25 112 28 107 34 C102 28 104 25 107 20 Z"
-                  fill="#ff8a3d"
-                />
-              </g>
-              <circle cx="70" cy="105" r="4" fill="#0697D5" />
-              <circle cx="90" cy="102" r="4" fill="#e8b23c" />
-              <circle cx="130" cy="102" r="4" fill="#0697D5" />
-              <circle cx="150" cy="105" r="4" fill="#e8b23c" />
-            </svg>
+          <article className="dictionary" aria-label={`Definition of ${DICTIONARY.word}`}>
+            <p className="dict-word">
+              {DICTIONARY.word} <span className="dict-phon">{DICTIONARY.phonetic}</span>
+            </p>
+            <p className="dict-type">{DICTIONARY.type}</p>
+            <ol>
+              {DICTIONARY.meanings.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ol>
+          </article>
+        </div>
+
+        <a className="scroll-cue hand" href="#music">
+          scroll for more ♡
+        </a>
+      </header>
+
+      <main>
+        <div className="marquee" aria-hidden="true">
+          <div className="marquee-track">
+            {Array.from({ length: 2 }).map((_, k) => (
+              <span key={k}>
+                happy birthday {NAME.toLowerCase()} 💜 lilac era 🦋 matcha o&apos;clock 🍵
+                blue skies only 🩵 the way you speak to yourself matters ✨ we purple you 💜
+                &nbsp;
+              </span>
+            ))}
           </div>
+        </div>
+
+        <div id="music" className="reveal-on-scroll">
+          <VinylPlayer playing={playing} onToggle={toggleMusic} />
+        </div>
+
+        <div className="reveal-on-scroll">
+          <PhotoArchive queen={queen} photos={photos} showHint={showPhotoHint} />
+        </div>
+
+        <div className="reveal-on-scroll">
+          <BirthdayCafe onCelebrate={celebrateAt} />
+        </div>
+
+        {/* ---------- NOTES ---------- */}
+        <section className="section notes reveal-on-scroll" aria-labelledby="notes-title">
+          <div className="section-head">
+            <p className="kicker">pinned to the board</p>
+            <h2 id="notes-title" className="section-title">
+              reasons you&apos;re <em>the best</em>
+            </h2>
+            <p className="section-sub">(an incomplete list — I ran out of sticky notes)</p>
+          </div>
+          <ul className="corkboard">
+            {REASONS.map((reason, i) => (
+              <li key={reason} className={`note note-${NOTE_COLORS[i % NOTE_COLORS.length]}`}>
+                <span className="pin" aria-hidden="true" />
+                <span className="note-from">reason #{i + 1}</span>
+                <p className="hand">{reason}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <div className="blessing">
-          <span className="quote-mark">&ldquo;</span>
-          <p>
-            May this new year of your life bring you the same clarity, courage,
-            and heart you bring to Techtimize every single day. May your health
-            stay strong, your family stay close, and every goal you set find its
-            way into your hands. We&apos;re grateful to build under your
-            leadership — here&apos;s to more milestones, more laughter, and more
-            reasons to celebrate together.
-          </p>
-          <div className="sign">
-            — With respect and gratitude, Team Techtimize
-          </div>
+        <div className="reveal-on-scroll">
+          <WishCake onBlow={(x, y) => confettiRef.current?.burst(x, y, undefined, 18)} onAllBlown={handleAllCandlesOut} />
         </div>
 
-        <p className="company-line">
-          On behalf of every desk, every team, and every project we&apos;ve
-          shipped together — <b>Techtimize</b> wishes you a year ahead as
-          visionary and driven as the one behind you. Thank you for building a
-          place we&apos;re proud to grow in.
-        </p>
-
-        <ImageSlider images={images} />
-
-        <div className="treat-box">
-          <div className="treat-label">Your surprise is waiting</div>
-          <div
-            className="gift-wrap"
-            onClick={handleOpenGift}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleOpenGift();
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label="Tap the gift to open"
-          >
-            <svg
-              className={`gift${giftOpened ? " opened" : ""}`}
-              viewBox="0 0 90 90"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <rect x="12" y="38" width="66" height="42" rx="4" fill="#0697D5" />
-              <rect x="12" y="38" width="66" height="10" fill="#0C5195" />
-              <rect x="40" y="38" width="10" height="42" fill="#e8b23c" />
-              <path d="M45 38 C30 20 10 24 20 38 Z" fill="#e8b23c" />
-              <path d="M45 38 C60 20 80 24 70 38 Z" fill="#e8b23c" />
-            </svg>
-            <div className="tap-label">Tap the gift to open</div>
-          </div>
-
-          <div
-            className={`treat-card${giftOpened ? " show" : ""}`}
-            id="treatCard"
-          >
-            <button
-              className="close-btn"
-              onClick={handleClose}
-              aria-label="Close"
-              type="button"
-            >
-              &times;
-            </button>
-            <div className="tag">Team request</div>
-            <h2>It&apos;s your birthday — treat time!</h2>
-            <p>
-              You know the rule: birthday boy treats the team. So it&apos;s time
-              to make it happen, whenever works for you.
+        {/* ---------- LETTER ---------- */}
+        <section className="section letter reveal-on-scroll" aria-label="A closing note">
+          <div className="letter-paper">
+            <p className="hand letter-dear">dear {NAME},</p>
+            <p className="letter-body">{CLOSING_LETTER}</p>
+            <p className="letter-sign">
+              <span className="hand">with regards,</span>
+              <strong>{FROM}</strong>
             </p>
-            <div className="btn-row">
-              <button
-                className="btn primary"
-                type="button"
-                onClick={handleAccept}
-              >
-                Count me in!
-              </button>
-              <button className="btn" type="button" onClick={handleLater}>
-                Let&apos;s plan it soon
-              </button>
-            </div>
-            <div
-              className={`response-note${responseNote ? " show" : ""}`}
-            >
-              {responseNote}
-            </div>
+            <span className="letter-stamp" aria-hidden="true">💜</span>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
 
-      <footer>Made with gratitude by Team Techtimize</footer>
+      <footer className="footer">
+        <p>
+          made with lilac &amp; love for <em>{NAME}</em>
+        </p>
+      </footer>
 
-      {revealed && (
+      {revealed ? (
         <button
           type="button"
-          className="music-toggle"
+          className={`music-fab${playing ? " is-playing" : ""}`}
           onClick={toggleMusic}
-          aria-label={
-            !musicEnabled || musicMuted
-              ? "Turn celebration music on"
-              : "Mute celebration music"
-          }
-          aria-pressed={musicEnabled && !musicMuted}
+          aria-pressed={playing}
+          aria-label={playing ? "Pause music" : "Play music"}
         >
-          <span className="music-toggle-icon" aria-hidden="true">
-            {!musicEnabled || musicMuted ? "♪" : "♫"}
-          </span>
-          <span className="music-toggle-label">
-            {!musicEnabled || musicMuted ? "Music off" : "Music on"}
-          </span>
+          <span className="music-fab-disc" aria-hidden="true" />
+          {playing ? "music on" : "music off"}
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
