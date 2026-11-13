@@ -6,6 +6,7 @@ import PhotoArchive from "@/components/PhotoArchive";
 import VinylPlayer from "@/components/VinylPlayer";
 import BirthdayCafe from "@/components/BirthdayCafe";
 import WishCake from "@/components/WishCake";
+import WishBoard from "@/components/WishBoard";
 import {
   Bear,
   Butterfly,
@@ -199,6 +200,10 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
 
         <div className="reveal-on-scroll">
           <BirthdayCafe onCelebrate={celebrateAt} />
+        </div>
+
+        <div className="reveal-on-scroll">
+          <WishBoard onCelebrate={celebrateAt} />
         </div>
 
         {/* ---------- NOTES ---------- */}
