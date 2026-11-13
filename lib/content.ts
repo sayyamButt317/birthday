@@ -76,12 +76,13 @@ export const REASONS = [
 /** The letter on the last "paper" — one string per paragraph. */
 export const LETTER_GREETING = "Happy birthday Rafia 🎉";
 export const CLOSING_LETTER = [
-  "Kasey and kb aik saal guzar gya, nahi pata chla tumharay sath. Such an energetic and adventurous character ho, kabhi bhi kisi bhi situation ma a ky sb theek kr deti ho, and always become the reason for everyone’s smile. Hamesha achi advice deti ho, help krti ho, humble rehti ho, and to be honest I spent the best days of my life. I feel privileged being a friend of someone like you, who always supports me and guides me.",
-  "Haan, kabhi kabhi mood swings a jatay hai tumharay thoraaay, infact thoray zada 😅, kabhi kabhi muj py gussa bhi ho jati ho. Zada e PM sa Rafia, Rafia sa Penguin, and Penguin sa boss… is aik saal ma bht kuch bdla, and bht sy achy moments hum na sath guzaray.",
-  "Ya toh ho gae script, ab thori thori paid promotion 😂 bhi kr dy? Pyara toh tumhe nai kah sakty 😂 kuch aur sochna parhay ga 💀",
-  "Joke apart, you are the real prettiest lady, a girl who doesn’t even care about makeup, with her natural glow and spark. And the fashion sense you have is so lit, like today’s outfit 🤧",
-  "Bas yahi dua hai ke tumhari har wish puri ho, woh 5 wali bhi 😉, aur tum hamesha aisay hi hasti muskurati raho. Stay the same crazy, kind and adventurous Rafia, kabhi change na hona. Thank you for being you, and for being such an amazing friend.",
-  "Once again, happy birthday! Have the best year ahead, full of adventures, Dairy Milk and iced coffee 🎂💜",
+  "Okay, I’ll admit it: this year went by way too fast, and I’m blaming you for it. Time doesn’t really behave normally around someone who turns a boring Tuesday into an adventure, fixes every crisis like it’s a minor inconvenience, and somehow leaves everyone in the room smiling.",
+  "Being your friend comes with a few side effects, though. There’s the stare, the one that makes me genuinely wonder if I should start writing my will 👀. There are the roughly one thousand “shut ups” I’ve collected this year (I’m keeping count). And of course the classic “meri baat suno pehle!”, usually right before you explain why I’m wrong, and, annoyingly, you usually aren’t.",
+  "Then there are your epic math calculations. Splitting a bill with you feels like watching a scientist at work: three apps, two recounts, one dramatic sigh, and an answer that is somehow still mysterious 🧮. Honestly, it’s a talent.",
+  "And the faces. The pout, the eye roll, the “I’m not impressed” look, the sudden smile you try very hard to hide. You can pretend you’re scary all you want, but those cute faces give you away every single time 😌.",
+  "Underneath all the teasing, though: you’re one of the kindest, most genuine people I know. You give the best advice, you help without being asked, you stay humble no matter what, and you have a natural glow that no makeup could ever compete with. Your fashion sense deserves its own fan page too. Today’s outfit included 🤧.",
+  "From PM to Rafia, from Rafia to Penguin 🐧, and somehow from Penguin to boss, it’s been a year of great moments, and I feel genuinely lucky to have been part of so many of them.",
+  "So here’s my wish for you: may every one of your wishes come true, especially the 5 you just wrote down (yes, I’ll be checking 😉). Keep the glow, keep the adventures, keep the cute faces, and maybe go a little easy on the death stares. Happy birthday, Rafia. Here’s to your best year yet 🎂💜",
 ];
 
 /** Captions used when a photo's filename doesn't give us a nice one. */
