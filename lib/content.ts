@@ -50,7 +50,7 @@ export const DICTIONARY = {
 };
 
 export const TRACKS = [
-  { title: "happy birthday (music box mix)", time: "0:15" },
+  { title: "happy birthday", time: "2:44" },
   { title: "lavender mornings", time: "3:12" },
   { title: "matcha before meetings", time: "2:48" },
   { title: "birthday girl era", time: "3:33" },
