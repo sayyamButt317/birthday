@@ -1732,3 +1732,126 @@
   font-size: 0.8rem;
   color: var(--ink-soft);
 }
+
+/* =========================================================
+   Archive: scroll + interaction animations
+   ========================================================= */
+
+.shuffle-btn {
+  margin-top: 1.2rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+}
+.shuffle-btn:active {
+  transform: scale(0.95) rotate(-2deg);
+}
+
+/* Pin-drop entrance: hidden until scrolled into view, then drops onto the wall. */
+.pin-item {
+  opacity: 0;
+}
+.pin-item.is-in {
+  opacity: 1;
+  animation: pin-drop 0.85s cubic-bezier(0.2, 1.3, 0.35, 1) backwards;
+  animation-delay: calc(var(--d, 0) * 90ms);
+}
+@keyframes pin-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -70px;
+    rotate: calc(var(--tilt, 0deg) * -4);
+    scale: 0.8;
+  }
+  60% {
+    opacity: 1;
+  }
+}
+.pin-item.is-in .tape {
+  animation: tape-slap 0.45s ease-out backwards;
+  animation-delay: calc(var(--d, 0) * 90ms + 0.55s);
+}
+@keyframes tape-slap {
+  from {
+    opacity: 0;
+    scale: 1.6;
+  }
+}
+
+/* Scroll parallax (--p set by JS) + mouse tilt (--rx/--ry) on the polaroid itself. */
+.polaroid {
+  translate: 0 calc(var(--p, 0) * var(--speed, 0) * 60px);
+  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease-out, box-shadow 0.3s ease;
+  will-change: translate, transform;
+}
+.polaroid:hover {
+  box-shadow: 0 26px 40px -18px rgba(75, 52, 120, 0.55);
+}
+.polaroid::after,
+.queen-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.5), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  mix-blend-mode: soft-light;
+}
+.polaroid:hover::after,
+.queen-card:hover::after {
+  opacity: 1;
+}
+.polaroid-wall li:hover {
+  transform: none;
+  scale: 1.06;
+  transition: rotate 0.3s ease, scale 0.3s ease;
+}
+
+/* Queen card: dealt in like a playing card, photo fades to colour once seen. */
+.queen-card {
+  opacity: 0;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.2s ease-out;
+}
+.queen-card.is-in {
+  opacity: 1;
+  animation: deal-in 1s cubic-bezier(0.2, 1.1, 0.3, 1) backwards;
+}
+@keyframes deal-in {
+  0% {
+    opacity: 0;
+    translate: -120px 40px;
+    rotate: -25deg;
+    scale: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.queen-card.is-in .queen-photo img,
+.queen-card.is-in .queen-photo video {
+  filter: none;
+  transition: filter 1.6s ease 0.9s;
+}
+.queen-card.is-in .queen-corner {
+  animation: corner-pop 0.5s ease-out backwards 0.8s;
+}
+@keyframes corner-pop {
+  from {
+    opacity: 0;
+    scale: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-item,
+  .queen-card {
+    opacity: 1;
+  }
+  .polaroid {
+    translate: none;
+  }
+}

@@ -65,17 +65,23 @@ export const REASONS = [
   "You can make a single cookie look like a Pinterest pin.",
   "Your Pinterest is basically a museum of good taste — I may have checked. Every lilac pin deserves to come true.",
   "Kind, funny, creative, and always down for food. Honestly, the full package.",
+  "Any situation, any time — you walk in and somehow everything is fixed. Like it’s no big deal.",
+  "PM → Rafia → Penguin → boss 🐧 Every version of you this year has been iconic.",
+  "You turn every café visit into a photoshoot, and the food always looks better in your pictures. 📸",
+  "Your advice is always right. Even when I don’t want to hear it. Especially then.",
+  "Your mood is a whole weather forecast — but the sunshine always wins in the end. 🌤️",
+  "Natural glow, zero makeup, and a fashion sense that’s always on point. Today’s outfit included. ✨",
 ];
 
 /** The letter on the last "paper" — one string per paragraph. */
 export const LETTER_GREETING = "Happy birthday Rafia 🎉";
 export const CLOSING_LETTER = [
-  "Kasey and kb aik saal guzar gya, nahi pata chla tumharay sath. Such an energetic and adventurous character ho — kabhi bhi kisi bhi situation ma a ky sb theek kr deti ho, and always become the reason for everyone’s smile. Hamesha achi advice deti ho, help krti ho, humble rehti ho, and to be honest I spent the best days of my life. I feel privileged being a friend of someone like you, who always supports me and guides me.",
-  "Haan, kabhi kabhi mood swings a jatay hai tumharay thoraaay — infact thoray zada 😅 — kabhi kabhi muj py gussa bhi ho jati ho. Zada e PM sa Rafia, Rafia sa Penguin, and Penguin sa boss… is aik saal ma bht kuch bdla, and bht sy achy moments hum na sath guzaray.",
+  "Kasey and kb aik saal guzar gya, nahi pata chla tumharay sath. Such an energetic and adventurous character ho, kabhi bhi kisi bhi situation ma a ky sb theek kr deti ho, and always become the reason for everyone’s smile. Hamesha achi advice deti ho, help krti ho, humble rehti ho, and to be honest I spent the best days of my life. I feel privileged being a friend of someone like you, who always supports me and guides me.",
+  "Haan, kabhi kabhi mood swings a jatay hai tumharay thoraaay, infact thoray zada 😅, kabhi kabhi muj py gussa bhi ho jati ho. Zada e PM sa Rafia, Rafia sa Penguin, and Penguin sa boss… is aik saal ma bht kuch bdla, and bht sy achy moments hum na sath guzaray.",
   "Ya toh ho gae script, ab thori thori paid promotion 😂 bhi kr dy? Pyara toh tumhe nai kah sakty 😂 kuch aur sochna parhay ga 💀",
-  "Joke apart, you are the real prettiest lady — a girl who doesn’t even care about makeup, with her natural glow and spark. And the fashion sense you have is so lit, like today’s outfit 🤧",
-  "Bas yahi dua hai ke tumhari har wish puri ho — woh 5 wali bhi 😉 — aur tum hamesha aisay hi hasti muskurati raho. Stay the same crazy, kind and adventurous Rafia, kabhi change na hona. Thank you for being you, and for being such an amazing friend.",
-  "Once again, happy birthday! Have the best year ahead — full of adventures, Dairy Milk and iced coffee 🎂💜",
+  "Joke apart, you are the real prettiest lady, a girl who doesn’t even care about makeup, with her natural glow and spark. And the fashion sense you have is so lit, like today’s outfit 🤧",
+  "Bas yahi dua hai ke tumhari har wish puri ho, woh 5 wali bhi 😉, aur tum hamesha aisay hi hasti muskurati raho. Stay the same crazy, kind and adventurous Rafia, kabhi change na hona. Thank you for being you, and for being such an amazing friend.",
+  "Once again, happy birthday! Have the best year ahead, full of adventures, Dairy Milk and iced coffee 🎂💜",
 ];
 
 /** Captions used when a photo's filename doesn't give us a nice one. */

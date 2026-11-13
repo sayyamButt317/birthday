@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { readWishes, toPublic } from "@/lib/wishes-server";
+import { fetchWishes, type PublicWish } from "@/lib/wishes-api";
 import { NAME } from "@/lib/content";
 import "../birthday.css";
 
@@ -13,7 +13,13 @@ const NOTE_COLORS = ["#e4d6f8", "#d4ecf8", "#dcebc8", "#f9dbe8", "#fff1bf"];
 
 export default async function WishesPage() {
   await connection();
-  const wishes = (await readWishes()).map(toPublic);
+  let wishes: PublicWish[] = [];
+  let unreachable = false;
+  try {
+    wishes = await fetchWishes();
+  } catch {
+    unreachable = true;
+  }
 
   return (
     <div className="bday wishes-page">
@@ -24,9 +30,11 @@ export default async function WishesPage() {
             {NAME}&apos;s <em>wishes</em>
           </h1>
           <p className="section-sub">
-            {wishes.length === 0
-              ? "no wishes saved yet — check back later 💜"
-              : `${wishes.length} of 5 wishes made. refresh to see new ones.`}
+            {unreachable
+              ? "couldn’t reach the wishes server — check NEXT_PUBLIC_BACKEND_URL in .env and that the backend is running."
+              : wishes.length === 0
+                ? "no wishes saved yet — check back later 💜"
+                : `${wishes.length} of 5 wishes made. refresh to see new ones.`}
           </p>
         </div>
 

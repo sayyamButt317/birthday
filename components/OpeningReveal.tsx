@@ -59,7 +59,7 @@ export default function OpeningReveal({ exiting = false, onReveal }: OpeningReve
         <label className="toggle">
           <input type="checkbox" checked={musicOn} onChange={(e) => setMusicOn(e.target.checked)} />
           <span className="toggle-ui" aria-hidden="true" />
-          play the music box
+          play the birthday song
         </label>
 
         <button type="button" className="btn btn-primary" onClick={open}>

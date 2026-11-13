@@ -39,7 +39,7 @@ export default function VinylPlayer({ playing, onToggle }: VinylPlayerProps) {
           ))}
         </ol>
         <button type="button" className="btn btn-primary" onClick={onToggle} aria-pressed={playing}>
-          {playing ? "❚❚  pause the music box" : "▶  play the music box"}
+          {playing ? "❚❚  pause the song" : "▶  play the song"}
         </button>
       </div>
     </section>

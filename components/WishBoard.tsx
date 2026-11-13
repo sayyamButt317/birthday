@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { shrinkImage } from "@/lib/shrink-image";
-import type { PublicWish } from "@/lib/wishes-server";
+import { fetchWishes, fileToDataUrl, MAX_IMAGE_BYTES, putWish, type PublicWish } from "@/lib/wishes-api";
 
 type WishBoardProps = {
   onCelebrate: (x: number, y: number, colors: string[]) => void;
@@ -56,10 +56,9 @@ export default function WishBoard({ onCelebrate }: WishBoardProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/wishes", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((data: { wishes: PublicWish[] }) => {
-        if (!cancelled) setSlots(fromServer(data.wishes));
+    fetchWishes()
+      .then((wishes) => {
+        if (!cancelled) setSlots(fromServer(wishes));
       })
       .catch(() => {
         if (!cancelled) setLoadError(true);
@@ -100,17 +99,20 @@ export default function WishBoard({ onCelebrate }: WishBoardProps) {
     update(n, { status: "saving", error: undefined });
 
     try {
-      const form = new FormData();
-      form.set("slot", String(n));
-      form.set("text", s.text.trim());
-      if (s.draft) form.set("image", await shrinkImage(s.draft));
-      if (s.removeImage) form.set("removeImage", "1");
+      let image: string | undefined;
+      if (s.draft) {
+        const small = await shrinkImage(s.draft);
+        if (small.size > MAX_IMAGE_BYTES) throw new Error("That picture is too big — please pick a smaller one.");
+        image = await fileToDataUrl(small);
+      }
 
-      const res = await fetch("/api/wishes", { method: "POST", body: form });
-      const data = (await res.json().catch(() => ({}))) as { wishes?: PublicWish[]; error?: string };
-      if (!res.ok || !data.wishes) throw new Error(data.error || "Couldn’t save — please try again.");
+      const wishes = await putWish(n, {
+        text: s.text.trim(),
+        ...(image ? { image } : {}),
+        ...(s.removeImage ? { removeImage: true } : {}),
+      });
 
-      const saved = data.wishes.find((w) => w.slot === n) ?? null;
+      const saved = wishes.find((w) => w.slot === n) ?? null;
       update(n, { saved, text: saved?.text ?? "", draft: null, draftUrl: null, removeImage: false, status: "saved" });
       if (saved) onCelebrate(rect.left + rect.width / 2, rect.top, [NOTE_COLORS[n - 1], "#c6aeef", "#ffffff"]);
     } catch (err) {

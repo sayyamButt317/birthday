@@ -15,21 +15,8 @@ function getAudioContextClass(): AudioCtor | null {
   );
 }
 
-// "Happy Birthday" (public domain) in C — [frequency, beats]. 0 = rest.
-const G4 = 392.0, A4 = 440.0, B4 = 493.88, C5 = 523.25, D5 = 587.33,
-  E5 = 659.25, F5 = 698.46, G5 = 783.99;
-
-const MELODY: [number, number][] = [
-  [G4, 0.75], [G4, 0.25], [A4, 1], [G4, 1], [C5, 1], [B4, 2],
-  [G4, 0.75], [G4, 0.25], [A4, 1], [G4, 1], [D5, 1], [C5, 2],
-  [G4, 0.75], [G4, 0.25], [G5, 1], [E5, 1], [C5, 1], [B4, 1], [A4, 2],
-  [F5, 0.75], [F5, 0.25], [E5, 1], [C5, 1], [D5, 1], [C5, 3],
-  [0, 2],
-];
-
-const BEAT = 0.46; // seconds — gentle, music-box tempo
-const LOOP_SECONDS = MELODY.reduce((sum, [, beats]) => sum + beats, 0) * BEAT;
-const VOLUME = 0.16;
+// Notes for the little sparkle chime (C major arpeggio).
+const C5 = 523.25, E5 = 659.25, G5 = 783.99;
 
 /** A soft music-box note: sine + bell-ish overtone with a quick decay. */
 function musicBoxNote(
@@ -59,53 +46,57 @@ function musicBoxNote(
   });
 }
 
-export function createBirthdayMusic(): BirthdayMusicController | null {
-  const AudioContextClass = getAudioContextClass();
-  if (!AudioContextClass) return null;
+export const SONG_URL = "/sound/HappyBirthday.mp3";
+const VOLUME = 0.7;
 
-  const ctx = new AudioContextClass();
-  const master = ctx.createGain();
-  master.gain.value = 0;
-  master.connect(ctx.destination);
+/**
+ * Plays the birthday song (public/sound/HappyBirthday.mp3) on loop with soft
+ * fade-ins/outs. The file is only downloaded once music is first started.
+ */
+export function createBirthdayMusic(): BirthdayMusicController | null {
+  if (typeof window === "undefined") return null;
+
+  const audio = new Audio();
+  audio.preload = "none";
+  audio.loop = true;
+  audio.volume = 0;
 
   let running = false;
   let muted = false;
-  let timeoutId = 0;
+  let fadeId = 0;
 
-  const scheduleLoop = () => {
-    if (!running) return;
-    let t = ctx.currentTime + 0.08;
-    for (const [freq, beats] of MELODY) {
-      if (freq > 0) musicBoxNote(ctx, master, freq, t);
-      t += beats * BEAT;
-    }
-    timeoutId = window.setTimeout(scheduleLoop, LOOP_SECONDS * 1000);
-  };
-
-  const applyGain = () => {
-    master.gain.setTargetAtTime(
-      running && !muted ? VOLUME : 0,
-      ctx.currentTime,
-      0.25,
-    );
+  const fadeTo = (target: number, ms: number, onDone?: () => void) => {
+    window.clearInterval(fadeId);
+    const from = audio.volume;
+    const steps = Math.max(1, Math.round(ms / 40));
+    let n = 0;
+    fadeId = window.setInterval(() => {
+      n += 1;
+      audio.volume = Math.min(1, Math.max(0, from + ((target - from) * n) / steps));
+      if (n >= steps) {
+        window.clearInterval(fadeId);
+        onDone?.();
+      }
+    }, 40);
   };
 
   return {
     start: () => {
       if (running) return;
       running = true;
-      void ctx.resume();
-      applyGain();
-      scheduleLoop();
+      if (!audio.src) audio.src = SONG_URL;
+      void audio.play().catch(() => {
+        running = false; // browser blocked autoplay; the music button can retry
+      });
+      if (!muted) fadeTo(VOLUME, 1200);
     },
     stop: () => {
       running = false;
-      window.clearTimeout(timeoutId);
-      applyGain();
+      fadeTo(0, 500, () => audio.pause());
     },
     setMuted: (isMuted: boolean) => {
       muted = isMuted;
-      applyGain();
+      if (running) fadeTo(isMuted ? 0 : VOLUME, 400);
     },
   };
 }

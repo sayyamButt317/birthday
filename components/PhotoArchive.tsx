@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { Photo } from "@/lib/photos";
 import { NAME } from "@/lib/content";
 
@@ -26,10 +26,88 @@ function Media({ photo, inLightbox = false }: { photo: Photo; inLightbox?: boole
   return <img src={photo.src} alt={photo.caption} loading={inLightbox ? undefined : "lazy"} draggable={false} />;
 }
 
+// Columns drift at different speeds while scrolling (parallax).
+const SPEEDS = [-0.6, 0.45, -0.3, 0.7];
+
+/** 3D tilt + glare that follows the mouse (ignored for touch). */
+function tilt(e: PointerEvent<HTMLElement>, strength = 10) {
+  if (e.pointerType !== "mouse") return;
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  const y = (e.clientY - r.top) / r.height;
+  el.style.setProperty("--ry", `${(x - 0.5) * strength}deg`);
+  el.style.setProperty("--rx", `${(0.5 - y) * strength}deg`);
+  el.style.setProperty("--mx", `${x * 100}%`);
+  el.style.setProperty("--my", `${y * 100}%`);
+}
+function untilt(e: PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  ["--rx", "--ry"].forEach((v) => el.style.setProperty(v, "0deg"));
+}
+
 export default function PhotoArchive({ queen, photos, showHint }: PhotoArchiveProps) {
   const all = queen ? [queen, ...photos] : photos;
   const [open, setOpen] = useState<number | null>(null);
+  const [shuffle, setShuffle] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
   const offset = queen ? 1 : 0;
+
+  // Pin-drop entrance + videos only play while on screen.
+  useEffect(() => {
+    const root = sectionRef.current;
+    if (!root) return;
+    const reveal = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-in");
+          reveal.unobserve(entry.target);
+        }),
+      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
+    );
+    root.querySelectorAll(".pin-item, .queen-card").forEach((el) => reveal.observe(el));
+
+    const playback = new IntersectionObserver((entries) =>
+      entries.forEach((entry) => {
+        const video = entry.target as HTMLVideoElement;
+        if (entry.isIntersecting) void video.play().catch(() => undefined);
+        else video.pause();
+      }),
+    );
+    root.querySelectorAll(".polaroid-wall video, .queen-photo video").forEach((v) => playback.observe(v));
+
+    return () => {
+      reveal.disconnect();
+      playback.disconnect();
+    };
+  }, [shuffle, photos.length]);
+
+  // Scroll parallax: --p goes from -1 (section below) to 1 (section above).
+  useEffect(() => {
+    const root = sectionRef.current;
+    if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const r = root.getBoundingClientRect();
+      if (r.bottom < -200 || r.top > window.innerHeight + 200) return;
+      const center = r.top + r.height / 2 - window.innerHeight / 2;
+      const p = Math.max(-1, Math.min(1, -center / (r.height / 2 + window.innerHeight / 2)));
+      root.style.setProperty("--p", p.toFixed(3));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     if (open === null) return;
@@ -52,13 +130,18 @@ export default function PhotoArchive({ queen, photos, showHint }: PhotoArchivePr
   const current = open !== null ? all[open] : null;
 
   return (
-    <section className="section archive" aria-labelledby="archive-title">
+    <section ref={sectionRef} className="section archive" aria-labelledby="archive-title">
       <div className="section-head">
         <p className="kicker">exhibit A, B, C… all of them</p>
         <h2 id="archive-title" className="section-title">
           the <em>{NAME}</em> archives
         </h2>
         <p className="section-sub">a wall of pure iconic behaviour. tap any polaroid — some of them move.</p>
+        {photos.length > 1 ? (
+          <button type="button" className="btn btn-soft shuffle-btn" onClick={() => setShuffle((n) => n + 1)}>
+            🔀 shuffle the wall
+          </button>
+        ) : null}
       </div>
 
       {all.length === 0 ? (
@@ -76,6 +159,8 @@ export default function PhotoArchive({ queen, photos, showHint }: PhotoArchivePr
           type="button"
           className="queen-card"
           onClick={() => queen && setOpen(0)}
+          onPointerMove={(e) => tilt(e, 14)}
+          onPointerLeave={untilt}
           aria-label={`${NAME}, queen of hearts — open photo`}
         >
           <span className="queen-corner tl">
@@ -92,13 +177,23 @@ export default function PhotoArchive({ queen, photos, showHint }: PhotoArchivePr
           </span>
         </button>
 
-        <ul className="polaroid-wall">
+        <ul className="polaroid-wall" key={shuffle}>
           {photos.map((photo, i) => (
-            <li key={photo.src} style={{ ["--tilt" as string]: `${TILTS[i % TILTS.length]}deg` }}>
+            <li
+              key={photo.src}
+              className="pin-item"
+              style={{
+                ["--tilt" as string]: `${TILTS[(i + shuffle * 3) % TILTS.length] * (shuffle % 2 ? -1 : 1)}deg`,
+                ["--speed" as string]: SPEEDS[i % SPEEDS.length],
+                ["--d" as string]: i % 4,
+              }}
+            >
               <button
                 type="button"
                 className="polaroid"
                 onClick={() => setOpen(i + offset)}
+                onPointerMove={(e) => tilt(e)}
+                onPointerLeave={untilt}
                 aria-label={`Open ${photo.kind === "video" ? "video" : "photo"}: ${photo.caption}`}
               >
                 <span className="tape" style={{ background: TAPES[i % TAPES.length] }} />

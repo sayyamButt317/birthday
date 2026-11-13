@@ -27,7 +27,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={cn("font-sans", sans.variable, serif.variable, hand.variable)}
     >
-      <body>{children}</body>
+      {/* Extensions like Grammarly add attributes to <body> before React loads. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
