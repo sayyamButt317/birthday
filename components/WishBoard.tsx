@@ -1,354 +1,217 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import {
-  deleteBoard,
-  deletePin,
-  loadBoards,
-  loadPins,
-  newId,
-  saveBoard,
-  savePin,
-  shrinkImage,
-  type Board,
-  type Pin,
-} from "@/lib/wish-store";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { shrinkImage } from "@/lib/shrink-image";
+import type { PublicWish } from "@/lib/wishes-server";
 
 type WishBoardProps = {
   onCelebrate: (x: number, y: number, colors: string[]) => void;
 };
 
-const NOTE_COLORS = [
-  { name: "lilac", value: "#e4d6f8" },
-  { name: "blue", value: "#d4ecf8" },
-  { name: "matcha", value: "#dcebc8" },
-  { name: "pink", value: "#f9dbe8" },
-  { name: "butter", value: "#fff1bf" },
+const SLOTS = [1, 2, 3, 4, 5] as const;
+const NOTE_COLORS = ["#e4d6f8", "#d4ecf8", "#dcebc8", "#f9dbe8", "#fff1bf"];
+const PROMPTS = [
+  "something I want this year…",
+  "a place I want to go…",
+  "a thing I want to learn…",
+  "something just for me…",
+  "a big, brave dream…",
 ];
-const EMOJIS = ["💜", "✨", "✈️", "🏠", "🍵", "🎀", "📚", "💸", "🌷", "🦋"];
-// Fixed ids so seeding is idempotent (StrictMode / multiple tabs can run it twice).
-const DEFAULT_BOARDS: Omit<Board, "createdAt">[] = [
-  { id: "default-wishes", name: "this year’s wishes", emoji: "💜" },
-  { id: "default-places", name: "places to go", emoji: "✈️" },
-  { id: "default-home", name: "dream home", emoji: "🏠" },
-];
-const MAX_IMAGES = 6;
+const MAX_TEXT = 500;
 
-type Draft = { file: File; url: string };
+type Slot = {
+  saved: PublicWish | null;
+  text: string;
+  draft: File | null;
+  draftUrl: string | null;
+  removeImage: boolean;
+  status: "idle" | "saving" | "saved" | "error";
+  error?: string;
+};
+
+const emptySlot = (): Slot => ({
+  saved: null,
+  text: "",
+  draft: null,
+  draftUrl: null,
+  removeImage: false,
+  status: "idle",
+});
+
+function fromServer(wishes: PublicWish[]): Record<number, Slot> {
+  const map: Record<number, Slot> = {};
+  for (const n of SLOTS) {
+    const w = wishes.find((x) => x.slot === n) ?? null;
+    map[n] = { ...emptySlot(), saved: w, text: w?.text ?? "" };
+  }
+  return map;
+}
 
 export default function WishBoard({ onCelebrate }: WishBoardProps) {
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [pins, setPins] = useState<Pin[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [slots, setSlots] = useState<Record<number, Slot>>(() => fromServer([]));
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const fileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const urlsRef = useRef<string[]>([]);
 
-  const [text, setText] = useState("");
-  const [color, setColor] = useState(NOTE_COLORS[0].value);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  const [creating, setCreating] = useState(false);
-  const [boardName, setBoardName] = useState("");
-  const [boardEmoji, setBoardEmoji] = useState(EMOJIS[0]);
-
-  const fileRef = useRef<HTMLInputElement>(null);
-  const pinBtnRef = useRef<HTMLButtonElement>(null);
-
-  // Load (and seed on first visit).
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        let b = await loadBoards();
-        if (b.length === 0) {
-          const now = Date.now();
-          b = DEFAULT_BOARDS.map((d, i) => ({ ...d, createdAt: now + i }));
-          await Promise.all(b.map(saveBoard));
-        }
-        const p = await loadPins();
-        if (cancelled) return;
-        setBoards(b);
-        setPins(p);
-        setActiveId(b[0]?.id ?? null);
-      } catch {
-        if (!cancelled) setError("Your browser blocked storage (private mode?), so wishes can’t be saved here.");
-      } finally {
-        if (!cancelled) setReady(true);
-      }
-    })();
+    fetch("/api/wishes", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data: { wishes: PublicWish[] }) => {
+        if (!cancelled) setSlots(fromServer(data.wishes));
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    const urls = urlsRef.current;
     return () => {
       cancelled = true;
+      urls.forEach((u) => URL.revokeObjectURL(u));
     };
   }, []);
 
-  // Object URLs for stored images.
-  const imageUrls = useMemo(() => {
-    const map = new Map<string, string>();
-    pins.forEach((p) => p.image && map.set(p.id, URL.createObjectURL(p.image)));
-    return map;
-  }, [pins]);
-  useEffect(() => () => imageUrls.forEach((u) => URL.revokeObjectURL(u)), [imageUrls]);
-  const draftsRef = useRef<Draft[]>([]);
-  useEffect(() => {
-    draftsRef.current = drafts;
-  }, [drafts]);
-  useEffect(() => () => draftsRef.current.forEach((d) => URL.revokeObjectURL(d.url)), []);
+  const update = (n: number, patch: Partial<Slot>) =>
+    setSlots((prev) => ({ ...prev, [n]: { ...prev[n], ...patch } }));
 
-  const active = boards.find((b) => b.id === activeId) ?? null;
-  const boardPins = pins.filter((p) => p.boardId === activeId);
-  const countFor = (id: string) => pins.filter((p) => p.boardId === id).length;
-
-  const addFiles = (files: FileList | null) => {
-    if (!files) return;
-    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    const room = Math.max(0, MAX_IMAGES - drafts.length);
-    const added = images.slice(0, room).map((file) => ({ file, url: URL.createObjectURL(file) }));
-    setDrafts((prev) => [...prev, ...added]);
-    if (fileRef.current) fileRef.current.value = "";
+  const pickImage = (n: number, files: FileList | null) => {
+    const file = files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    urlsRef.current.push(url);
+    update(n, { draft: file, draftUrl: url, removeImage: false, status: "idle" });
+    const input = fileRefs.current[n];
+    if (input) input.value = "";
   };
 
-  const removeDraft = (url: string) => {
-    URL.revokeObjectURL(url);
-    setDrafts((prev) => prev.filter((d) => d.url !== url));
-  };
+  const dropImage = (n: number) =>
+    update(n, { draft: null, draftUrl: null, removeImage: true, status: "idle" });
 
-  const submitPin = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!activeId || saving) return;
-    const trimmed = text.trim();
-    if (!trimmed && drafts.length === 0) return;
+  const isDirty = (s: Slot) =>
+    s.text.trim() !== (s.saved?.text ?? "") || !!s.draft || (s.removeImage && !!s.saved?.imageUrl);
 
-    setSaving(true);
+  const save = async (n: number, e: MouseEvent<HTMLButtonElement>) => {
+    const s = slots[n];
+    if (!isDirty(s) || s.status === "saving") return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    update(n, { status: "saving", error: undefined });
+
     try {
-      const now = Date.now();
-      const created: Pin[] = [];
-      if (drafts.length === 0) {
-        created.push({ id: newId(), boardId: activeId, text: trimmed, color, done: false, createdAt: now });
-      } else {
-        // One pin per picture; the typed wish goes on each of them.
-        for (const [i, d] of drafts.entries()) {
-          const image = await shrinkImage(d.file);
-          created.push({ id: newId(), boardId: activeId, text: trimmed, image, color, done: false, createdAt: now + i });
-        }
-      }
-      await Promise.all(created.map(savePin));
-      setPins((prev) => [...created.reverse(), ...prev]);
-      setText("");
-      drafts.forEach((d) => URL.revokeObjectURL(d.url));
-      setDrafts([]);
-      const r = pinBtnRef.current?.getBoundingClientRect();
-      if (r) onCelebrate(r.left + r.width / 2, r.top, [color, "#c6aeef", "#ffffff"]);
-    } catch {
-      setError("Couldn’t save that one — the browser may be out of space. Try a smaller picture?");
-    } finally {
-      setSaving(false);
+      const form = new FormData();
+      form.set("slot", String(n));
+      form.set("text", s.text.trim());
+      if (s.draft) form.set("image", await shrinkImage(s.draft));
+      if (s.removeImage) form.set("removeImage", "1");
+
+      const res = await fetch("/api/wishes", { method: "POST", body: form });
+      const data = (await res.json().catch(() => ({}))) as { wishes?: PublicWish[]; error?: string };
+      if (!res.ok || !data.wishes) throw new Error(data.error || "Couldn’t save — please try again.");
+
+      const saved = data.wishes.find((w) => w.slot === n) ?? null;
+      update(n, { saved, text: saved?.text ?? "", draft: null, draftUrl: null, removeImage: false, status: "saved" });
+      if (saved) onCelebrate(rect.left + rect.width / 2, rect.top, [NOTE_COLORS[n - 1], "#c6aeef", "#ffffff"]);
+    } catch (err) {
+      update(n, { status: "error", error: err instanceof Error ? err.message : "Couldn’t save." });
     }
   };
 
-  const toggleDone = async (pin: Pin, el: HTMLElement) => {
-    const updated = { ...pin, done: !pin.done };
-    setPins((prev) => prev.map((p) => (p.id === pin.id ? updated : p)));
-    await savePin(updated);
-    if (updated.done) {
-      const r = el.getBoundingClientRect();
-      onCelebrate(r.left + r.width / 2, r.top, ["#fff4c9", "#c6aeef", "#b5d395"]);
-    }
-  };
-
-  const removePin = async (pin: Pin) => {
-    if (!window.confirm("Remove this wish?")) return;
-    setPins((prev) => prev.filter((p) => p.id !== pin.id));
-    await deletePin(pin.id);
-  };
-
-  const createBoard = async (e: FormEvent) => {
-    e.preventDefault();
-    const name = boardName.trim();
-    if (!name) return;
-    const board: Board = { id: newId(), name, emoji: boardEmoji, createdAt: Date.now() };
-    await saveBoard(board);
-    setBoards((prev) => [...prev, board]);
-    setActiveId(board.id);
-    setBoardName("");
-    setCreating(false);
-  };
-
-  const removeBoard = async () => {
-    if (!active || boards.length <= 1) return;
-    const n = countFor(active.id);
-    if (!window.confirm(`Delete the board “${active.name}”${n ? ` and its ${n} wish${n > 1 ? "es" : ""}` : ""}?`)) return;
-    await deleteBoard(active.id);
-    const rest = boards.filter((b) => b.id !== active.id);
-    setBoards(rest);
-    setPins((prev) => prev.filter((p) => p.boardId !== active.id));
-    setActiveId(rest[0]?.id ?? null);
-  };
+  const count = SLOTS.filter((n) => slots[n].saved).length;
 
   return (
     <section className="section wishboard" aria-labelledby="wishboard-title">
       <div className="section-head">
-        <p className="kicker">pinned by you</p>
+        <p className="kicker">your turn</p>
         <h2 id="wishboard-title" className="section-title">
-          your <em>wish board</em>
+          your <em>5 wishes</em>
         </h2>
         <p className="section-sub">
-          type a wish or upload a picture of anything you want this year — make as many boards as you
-          like. it all stays saved right here on your device.
+          write down 5 things you wish for this year — add a picture if you like. save each one and
+          it&apos;s sent straight to me, so I can try to make them come true 💜
+        </p>
+        <p className="wb-progress" aria-live="polite">
+          {loading ? "loading your wishes…" : `${count} of 5 wishes made`}
+          <span className="wb-dots" aria-hidden="true">
+            {SLOTS.map((n) => (
+              <span key={n} className={slots[n].saved ? "on" : undefined} />
+            ))}
+          </span>
         </p>
       </div>
 
-      {error ? <p className="wb-error" role="alert">{error}</p> : null}
+      {loadError ? (
+        <p className="wb-error" role="alert">
+          Couldn&apos;t reach the wish box right now — refresh the page in a moment.
+        </p>
+      ) : null}
 
-      {/* boards / folders */}
-      <div className="wb-boards" role="tablist" aria-label="Your boards">
-        {boards.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            role="tab"
-            aria-selected={b.id === activeId}
-            className={`wb-board${b.id === activeId ? " is-active" : ""}`}
-            onClick={() => setActiveId(b.id)}
-          >
-            <span className="wb-board-emoji" aria-hidden="true">{b.emoji}</span>
-            {b.name}
-            <span className="wb-count">{countFor(b.id)}</span>
-          </button>
-        ))}
-        {creating ? (
-          <form className="wb-new-board" onSubmit={createBoard}>
-            <select value={boardEmoji} onChange={(e) => setBoardEmoji(e.target.value)} aria-label="Board emoji">
-              {EMOJIS.map((em) => (
-                <option key={em} value={em}>{em}</option>
-              ))}
-            </select>
-            <input
-              autoFocus
-              value={boardName}
-              onChange={(e) => setBoardName(e.target.value)}
-              placeholder="board name…"
-              maxLength={40}
-              aria-label="Board name"
-            />
-            <button type="submit" className="wb-mini primary">add</button>
-            <button type="button" className="wb-mini" onClick={() => setCreating(false)}>cancel</button>
-          </form>
-        ) : (
-          <button type="button" className="wb-board wb-board-add" onClick={() => setCreating(true)} disabled={!ready || !!error}>
-            + new board
-          </button>
-        )}
-      </div>
+      <ol className="wb-slots">
+        {SLOTS.map((n, i) => {
+          const s = slots[n];
+          const preview = s.draftUrl ?? (s.removeImage ? null : s.saved?.imageUrl ?? null);
+          const dirty = isDirty(s);
+          const disabled = loading || loadError;
+          return (
+            <li key={n} className={`wb-slot${s.saved ? " is-saved" : ""}`} style={{ ["--note" as string]: NOTE_COLORS[i] }}>
+              <div className="wb-slot-head">
+                <span className="wb-slot-no">wish #{n}</span>
+                {s.saved && !dirty ? <span className="wb-slot-badge">saved ✓</span> : null}
+              </div>
 
-      {/* composer */}
-      <form className="wb-composer" onSubmit={submitPin} style={{ ["--note" as string]: color }}>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={active ? `I wish… (adding to ${active.emoji} ${active.name})` : "I wish…"}
-          rows={3}
-          maxLength={400}
-          aria-label="Write a wish"
-          disabled={!ready || !!error}
-        />
-
-        {drafts.length ? (
-          <ul className="wb-drafts">
-            {drafts.map((d) => (
-              <li key={d.url}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={d.url} alt="" />
-                <button type="button" onClick={() => removeDraft(d.url)} aria-label="Remove picture">×</button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        <div className="wb-composer-row">
-          <label className={`wb-upload${!ready || error ? " is-disabled" : ""}`}>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => addFiles(e.target.files)}
-              disabled={!ready || !!error}
-            />
-            📷 add pictures
-          </label>
-
-          <div className="wb-swatches" role="radiogroup" aria-label="Note colour">
-            {NOTE_COLORS.map((c) => (
-              <button
-                key={c.name}
-                type="button"
-                role="radio"
-                aria-checked={color === c.value}
-                aria-label={c.name}
-                className={`wb-swatch${color === c.value ? " is-active" : ""}`}
-                style={{ background: c.value }}
-                onClick={() => setColor(c.value)}
-              />
-            ))}
-          </div>
-
-          <button
-            ref={pinBtnRef}
-            type="submit"
-            className="btn btn-primary wb-submit"
-            disabled={!ready || !!error || saving || (!text.trim() && drafts.length === 0)}
-          >
-            {saving ? "pinning…" : "pin it 📌"}
-          </button>
-        </div>
-      </form>
-
-      {/* pins */}
-      {ready && boardPins.length === 0 ? (
-        <div className="wb-empty">
-          <span aria-hidden="true">{active?.emoji ?? "💜"}</span>
-          <p className="hand">this board is waiting for its first wish…</p>
-        </div>
-      ) : (
-        <ul className="wb-grid">
-          {boardPins.map((pin) => {
-            const url = imageUrls.get(pin.id);
-            return (
-              <li key={pin.id} className={`wb-pin${pin.done ? " is-done" : ""}${url ? " has-image" : ""}`} style={{ background: pin.color }}>
-                {url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={url} alt={pin.text || "wish picture"} loading="lazy" />
-                ) : null}
-                {pin.text ? <p className="hand">{pin.text}</p> : null}
-                {pin.done ? <span className="wb-stamp">came true ✨</span> : null}
-                <div className="wb-actions">
-                  <button
-                    type="button"
-                    onClick={(e) => toggleDone(pin, e.currentTarget)}
-                    aria-pressed={pin.done}
-                    title={pin.done ? "Not yet" : "It came true!"}
-                    aria-label={pin.done ? "Mark as not yet" : "Mark as came true"}
-                  >
-                    {pin.done ? "↺" : "✓"}
-                  </button>
-                  <button type="button" onClick={() => removePin(pin)} title="Remove" aria-label="Remove wish">
-                    🗑
+              {preview ? (
+                <div className="wb-slot-img">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview} alt={`Picture for wish ${n}`} />
+                  <button type="button" onClick={() => dropImage(n)} aria-label={`Remove picture from wish ${n}`}>
+                    ×
                   </button>
                 </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+              ) : null}
 
-      {active && boards.length > 1 ? (
-        <div className="wb-footer">
-          <button type="button" className="wb-mini danger" onClick={removeBoard}>
-            delete “{active.name}” board
-          </button>
-        </div>
-      ) : null}
+              <textarea
+                value={s.text}
+                onChange={(e) => update(n, { text: e.target.value, status: "idle" })}
+                placeholder={`I wish for ${PROMPTS[i]}`}
+                maxLength={MAX_TEXT}
+                rows={3}
+                aria-label={`Wish number ${n}`}
+                disabled={disabled}
+              />
+
+              <div className="wb-slot-actions">
+                <label className={`wb-upload${disabled ? " is-disabled" : ""}`}>
+                  <input
+                    ref={(el) => {
+                      fileRefs.current[n] = el;
+                    }}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => pickImage(n, e.target.files)}
+                    disabled={disabled}
+                  />
+                  📷 {preview ? "change" : "picture"}
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-primary wb-save"
+                  onClick={(e) => save(n, e)}
+                  disabled={disabled || !dirty || s.status === "saving"}
+                >
+                  {s.status === "saving" ? "saving…" : s.saved && !s.text.trim() && !preview ? "clear" : "save wish"}
+                </button>
+              </div>
+
+              {s.status === "error" ? (
+                <p className="wb-slot-msg is-error" role="alert">{s.error}</p>
+              ) : s.status === "saved" && !dirty ? (
+                <p className="wb-slot-msg" role="status">{s.saved ? "sent to me 💌" : "wish cleared"}</p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }

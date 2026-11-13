@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import OpeningReveal from "@/components/OpeningReveal";
 import PhotoArchive from "@/components/PhotoArchive";
 import VinylPlayer from "@/components/VinylPlayer";
-import BirthdayCafe from "@/components/BirthdayCafe";
 import WishCake from "@/components/WishCake";
 import WishBoard from "@/components/WishBoard";
 import {
@@ -19,7 +18,7 @@ import {
 } from "@/components/Stickers";
 import { createBirthdayMusic, playChime } from "@/lib/birthday-music";
 import { createConfetti, type ConfettiController } from "@/lib/confetti";
-import { CLOSING_LETTER, DICTIONARY, FROM, NAME, REASONS } from "@/lib/content";
+import { CLOSING_LETTER, DICTIONARY, FROM, LETTER_GREETING, NAME, REASONS } from "@/lib/content";
 import type { Photo } from "@/lib/photos";
 import "./birthday.css";
 
@@ -40,7 +39,6 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
   const [showReveal, setShowReveal] = useState(true);
   const [playing, setPlaying] = useState(false);
 
-  // Confetti canvas lives for the whole page.
   useEffect(() => {
     if (!canvasRef.current) return;
     const confetti = createConfetti(canvasRef.current);
@@ -48,7 +46,6 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
     return () => confetti.destroy();
   }, []);
 
-  // Lock scroll while the envelope is showing.
   useEffect(() => {
     if (!showReveal) return;
     const prev = document.body.style.overflow;
@@ -59,8 +56,6 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
   }, [showReveal]);
 
   useEffect(() => () => musicRef.current?.stop(), []);
-
-  // Gentle scroll-in for sections.
   useEffect(() => {
     if (!revealed) return;
     const els = document.querySelectorAll<HTMLElement>(".reveal-on-scroll");
@@ -128,8 +123,6 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
       {showReveal ? <OpeningReveal exiting={revealed} onReveal={handleReveal} /> : null}
 
       <canvas className="confetti-canvas" ref={canvasRef} aria-hidden="true" />
-
-      {/* ---------- HERO ---------- */}
       <header className="hero">
         <div className="hero-stickers" aria-hidden="true">
           <GummyHeart className="float f1" style={{ top: "9%", left: "6%", width: 70 }} />
@@ -199,10 +192,6 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
         </div>
 
         <div className="reveal-on-scroll">
-          <BirthdayCafe onCelebrate={celebrateAt} />
-        </div>
-
-        <div className="reveal-on-scroll">
           <WishBoard onCelebrate={celebrateAt} />
         </div>
 
@@ -229,12 +218,14 @@ export default function BirthdayCelebration({ queen, photos, showPhotoHint }: Bi
         <div className="reveal-on-scroll">
           <WishCake onBlow={(x, y) => confettiRef.current?.burst(x, y, undefined, 18)} onAllBlown={handleAllCandlesOut} />
         </div>
-
-        {/* ---------- LETTER ---------- */}
         <section className="section letter reveal-on-scroll" aria-label="A closing note">
           <div className="letter-paper">
-            <p className="hand letter-dear">dear {NAME},</p>
-            <p className="letter-body">{CLOSING_LETTER}</p>
+            <p className="hand letter-dear">{LETTER_GREETING}</p>
+            {CLOSING_LETTER.map((para) => (
+              <p key={para} className="letter-body">
+                {para}
+              </p>
+            ))}
             <p className="letter-sign">
               <span className="hand">with regards,</span>
               <strong>{FROM}</strong>
